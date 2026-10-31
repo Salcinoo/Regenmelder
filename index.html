@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#17394e">
+  <meta name="description" content="Persönlicher Regenmelder mit Push-Benachrichtigungen">
+  <title>Regenmelder</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><div class="logo">☔</div><div><h1>Regenmelder</h1><p>Persönliche Regenüberwachung</p></div></div>
+    <span id="connection" class="pill muted">Verbinde …</span>
+  </header>
+
+  <main>
+    <section class="hero card">
+      <div class="weather-icon" id="weatherIcon">☀️</div>
+      <div class="eyebrow">AKTUELLER STATUS</div>
+      <h2 id="rainState">Status wird geladen</h2>
+      <p id="lastUpdate" class="sub">Warte auf die erste Meldung des ESP32-C3.</p>
+      <div class="status-line"><span>Sensor</span><strong id="sensorState">Noch keine Daten</strong></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Benachrichtigungen</h2><span class="bell">🔔</span></div>
+      <p class="sub">Aktiviere Push, damit dein iPhone bei Regenbeginn und Regenende benachrichtigt wird.</p>
+      <button id="enablePush" class="primary">Push-Benachrichtigungen aktivieren</button>
+      <p id="pushStatus" class="hint">Auf dem iPhone zuerst zum Home-Bildschirm hinzufügen und die App von dort öffnen.</p>
+      <div class="setting"><div><strong>Regenbeginn</strong><small>Push bei erkanntem Regen</small></div><label class="switch"><input id="startToggle" type="checkbox" checked><span></span></label></div>
+      <div class="setting"><div><strong>Regenende</strong><small>Push, wenn der Sensor wieder trocken ist</small></div><label class="switch"><input id="endToggle" type="checkbox" checked><span></span></label></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>Letzte Ereignisse</h2><button id="refresh" class="text-button">Aktualisieren</button></div>
+      <ul id="events" class="events"><li class="empty">Noch keine Ereignisse vorhanden.</li></ul>
+    </section>
+
+    <section class="card about">
+      <h2>Regenmelder</h2>
+      <p class="sub">Der ESP32-C3 meldet Regenereignisse sicher an den Regenmelder-Dienst. Diese Website zeigt den zuletzt bekannten Zustand.</p>
+      <div class="status-line"><span>Letzter Kontakt</span><strong id="lastContact">–</strong></div>
+    </section>
+  </main>
+  <footer>Regenmelder · Private Wetterüberwachung</footer>
+  <script src="./app.js"></script>
+</body>
+</html>
