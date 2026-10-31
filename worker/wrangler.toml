@@ -5,4 +5,4 @@ compatibility_flags = ["nodejs_compat"]
 
 [[kv_namespaces]]
 binding = "REGENMELDER_KV"
-id = "DEINE_KV_NAMESPACE_ID"
+id = "888d16b69eb545e892ee7b3f2227ab55"
