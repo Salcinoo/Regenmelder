@@ -1,5 +1,5 @@
 // Nach dem Deploy die Worker-Adresse eintragen (ohne abschließenden Slash).
-const API_BASE = "https://DEIN-WORKER-NAME.DEIN-KONTO.workers.dev";
+const API_BASE = "https://regenmelder-api.niclas-tiedge.workers.dev";
 
 const $ = (id) => document.getElementById(id);
 let currentStatus = null;
