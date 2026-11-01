@@ -21,10 +21,13 @@ export default {
       return new Response(null, { headers: cors });
 
     if (url.pathname === "/api/vapid-public-key" && request.method === "GET") {
-      return json({
-        publicKey: env.VAPID_PUBLIC_KEY || "",
-        configured: !!env.VAPID_PUBLIC_KEY
-      });
+      try {
+        const keys = await getVapidKeys(env);
+        return json({ publicKey: keys.publicKey, configured: true });
+      } catch (error) {
+        console.log("VAPID setup error", error?.message || String(error));
+        return json({ publicKey: "", configured: false, error: "Push-Schlüssel konnten nicht bereitgestellt werden" }, 503);
+      }
     }
 
     if (url.pathname === "/api/status" && request.method === "GET") {
@@ -98,26 +101,49 @@ export default {
       await env.REGENMELDER_KV.put("state", JSON.stringify(state));
 
       // Rain status must still be saved if push credentials are not configured.
-      if (env.VAPID_SUBJECT && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+      let push = "not_configured";
+      try {
         await sendPush(env, {
           title: "Regenmelder",
           body: raining ? "Regen erkannt!" : "Regen beendet!",
           tag: "regenmelder-" + body.event.toLowerCase()
         });
+        push = "sent";
+      } catch (error) {
+        // Rain state is already safely stored; push failures must not reject the ESP32 event.
+        push = "failed";
+        console.log("Push send error", error?.message || String(error));
       }
 
-      return json({ ok: true, state });
+      return json({ ok: true, state, push });
     }
 
     return json({ error: "Not found" }, 404);
   }
 };
 
+async function getVapidKeys(env) {
+  if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+    return { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY };
+  }
+
+  // If VAPID secrets were not added in Cloudflare, create and persist a keypair
+  // in the existing KV namespace. This avoids requiring manual secret setup.
+  const stored = await env.REGENMELDER_KV.get("vapid:keys", "json");
+  if (stored?.publicKey && stored?.privateKey) return stored;
+
+  const generated = webpush.generateVAPIDKeys();
+  const keys = { publicKey: generated.publicKey, privateKey: generated.privateKey };
+  await env.REGENMELDER_KV.put("vapid:keys", JSON.stringify(keys));
+  return keys;
+}
+
 async function sendPush(env, payload) {
+  const keys = await getVapidKeys(env);
   webpush.setVapidDetails(
-    env.VAPID_SUBJECT,
-    env.VAPID_PUBLIC_KEY,
-    env.VAPID_PRIVATE_KEY
+    env.VAPID_SUBJECT || "mailto:regenmelder@example.com",
+    keys.publicKey,
+    keys.privateKey
   );
 
   const keys = await env.REGENMELDER_KV.list({ prefix: "sub:" });
