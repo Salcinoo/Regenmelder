@@ -65,9 +65,13 @@ export default {
     }
 
     if (url.pathname === "/api/event" && request.method === "POST") {
-      const auth = request.headers.get("Authorization") || "";
+      const auth = (request.headers.get("Authorization") || "").trim();
+      const authParts = auth.split(/\s+/);
+      const scheme = (authParts.shift() || "").toLowerCase();
+      const suppliedToken = authParts.join(" ");
+      const expectedToken = String(env.DEVICE_TOKEN || "").trim();
 
-      if (auth !== "Bearer " + env.DEVICE_TOKEN)
+      if (scheme !== "bearer" || !expectedToken || suppliedToken !== expectedToken)
         return json({ error: "Unauthorized" }, 401);
 
       let body;
@@ -146,9 +150,9 @@ async function sendPush(env, payload) {
     keys.privateKey
   );
 
-  const keys = await env.REGENMELDER_KV.list({ prefix: "sub:" });
+  const subscriptions = await env.REGENMELDER_KV.list({ prefix: "sub:" });
 
-  await Promise.all(keys.keys.map(async item => {
+  await Promise.all(subscriptions.keys.map(async item => {
     const raw = await env.REGENMELDER_KV.get(item.name);
     if (!raw) return;
 
