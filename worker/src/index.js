@@ -74,28 +74,37 @@ export default {
         return json({ error: "Invalid JSON" }, 400);
       }
 
-      if (!["REGEN_START", "REGEN_END"].includes(body.event))
+      if (!["REGEN_START", "REGEN_END", "HEARTBEAT"].includes(body.event))
         return json({ error: "Invalid event" }, 400);
 
-      const old = await env.REGENMELDER_KV.get("state", "json") || { events: [] };
-      const raining = body.event === "REGEN_START";
-      const event = { event: body.event, time: now() };
-      const events = [event, ...(old.events || [])].slice(0, 30);
-
-      const state = {
-        raining,
-        updated_at: event.time,
-        device_online: true,
-        events
+      const old = await env.REGENMELDER_KV.get("state", "json") || {
+        raining: false, updated_at: null, device_online: false, events: []
       };
+      const timestamp = now();
+
+      // Heartbeats refresh the online timestamp without changing rain state
+      // or creating a visible event in the history.
+      if (body.event === "HEARTBEAT") {
+        const state = { ...old, updated_at: timestamp, device_online: true };
+        await env.REGENMELDER_KV.put("state", JSON.stringify(state));
+        return json({ ok: true, state });
+      }
+
+      const raining = body.event === "REGEN_START";
+      const event = { event: body.event, time: timestamp };
+      const events = [event, ...(old.events || [])].slice(0, 30);
+      const state = { raining, updated_at: timestamp, device_online: true, events };
 
       await env.REGENMELDER_KV.put("state", JSON.stringify(state));
 
-      await sendPush(env, {
-        title: "Regenmelder",
-        body: raining ? "Regen erkannt!" : "Regen beendet!",
-        tag: "regenmelder-" + body.event.toLowerCase()
-      });
+      // Rain status must still be saved if push credentials are not configured.
+      if (env.VAPID_SUBJECT && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+        await sendPush(env, {
+          title: "Regenmelder",
+          body: raining ? "Regen erkannt!" : "Regen beendet!",
+          tag: "regenmelder-" + body.event.toLowerCase()
+        });
+      }
 
       return json({ ok: true, state });
     }
